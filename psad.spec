@@ -49,14 +49,12 @@ awk '/use lib/ { sub("%{_prefix}/lib/psad", "%{_libdir}/%{name}") } { print }' $
 	mv $i.tmp $i
 done
 
-# FIXME - do it with a loop
-perl Psad/Makefile.PL PREFIX=%{psadlibdir} LIB=%{psadlibdir}
-perl IPTables-Parse/Makefile.PL PREFIX=%{psadlibdir} LIB=%{psadlibdir}
-perl IPTables-ChainMgr/Makefile.PL PREFIX=%{psadlibdir} LIB=%{psadlibdir}
-perl Bit-Vector/Makefile.PL PREFIX=%{psadlibdir} LIB=%{psadlibdir}
-perl Net-IPv4Addr/Makefile.PL PREFIX=%{psadlibdir} LIB=%{psadlibdir}
-perl Unix-Syslog/Makefile.PL PREFIX=%{psadlibdir} LIB=%{psadlibdir}
-perl Date-Calc/Makefile.PL PREFIX=%{psadlibdir} LIB=%{psadlibdir}
+DIRS="Psad IPTables-Parse IPTables-ChainMgr Bit-Vector Net-IPv4Addr Unix-Syslog Date-Calc"
+for i in $DIRS; do
+	cd $i
+	perl Makefile.PL PREFIX=%{psadlibdir} LIB=%{psadlibdir}
+	cd ..
+done
 
 %build
 ### build psad binaries (kmsgsd and psadwatchd)
@@ -174,9 +172,6 @@ perl -p -i -e 'use Sys::Hostname; my $hostname = hostname(); s/HOSTNAME(\s+)_?CH
 
 /bin/touch %{psadlogdir}/fwdata
 chown root.root %{psadlogdir}/fwdata
-chmod 0500 %{_sbindir}/psad
-chmod 0500 %{_sbindir}/kmsgsd
-chmod 0500 %{_sbindir}/psadwatchd
 chmod 0600 %{psadlogdir}/fwdata
 if [ ! -p %psadvarlibdir/psadfifo ];
 then [ -e %psadvarlibdir/psadfifo ] && /bin/rm -f %psadvarlibdir/psadfifo
@@ -218,8 +213,8 @@ fi
 %files
 %defattr(644,root,root,755)
 %dir %{psadlogdir}
-%dir %psadvarlibdir
-%dir %psadrundir
+%dir %{psadvarlibdir}
+%dir %{psadrundir}
 %attr(754,root,root) /etc/rc.d/init.d/psad
 %attr(755,root,root) %{_sbindir}/*
 %attr(755,root,root) %{_bindir}/*

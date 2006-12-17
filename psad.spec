@@ -1,6 +1,7 @@
 # TODO
 # - use system perl packages
 # - CC & CFLAGS
+# - use system whois (same sources)
 #
 %define psadlibdir %{_libdir}/%{name}
 %define psadlogdir /var/log/psad
@@ -9,18 +10,27 @@
 
 ### get the first @INC directory that includes the string "linux".
 ### This may be 'i386-linux', or 'i686-linux-thread-multi', etc.
+# TODO: kill this
 %define psadmoddir `perl -e '$path='i386-linux'; for (@INC) { if($_ =~ m|.*/(.*linux.*)|) {$path = $1; last; }} print $path'`
 
+%include	/usr/lib/rpm/macros.perl
 Summary:	Psad analyzes iptables log messages for suspect traffic
 Name:		psad
 Version:	2.0.1
-Release:	0.1
+Release:	0.3
 License:	GPL
 Group:		Daemons
 URL:		http://www.cipherdyne.org/psad/
 Source0:	http://www.cipherdyne.org/psad/download/%{name}-%{version}.tar.gz
 # Source0-md5:	a1604b68e31178e7e0cbbfd7c1cd4edf
 BuildRequires:	perl-base
+BuildRequires:	rpm-perlprov >= 4.1-13
+%if %{with autodeps}
+BuildRequires:	perl-Bit-Vector
+BuildRequires:	perl-Date-Calc
+BuildRequires:	perl-Net-IPv4Addr
+BuildRequires:	perl-Unix-Syslog
+%endif
 Requires:	iptables
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
@@ -32,29 +42,35 @@ and other suspicious traffic.
 
 %prep
 %setup -q
+rm -rf Bit-Vector
+rm -rf Date-Calc
+rm -rf Net-IPv4Addr
+rm -rf Unix-Syslog
 
 %build
-DIRS="Psad IPTables-Parse IPTables-ChainMgr Bit-Vector Net-IPv4Addr Unix-Syslog Date-Calc"
+DIRS="Psad IPTables-Parse IPTables-ChainMgr"
 for i in $DIRS; do
 	cd $i
-	perl Makefile.PL PREFIX=%{psadlibdir} LIB=%{psadlibdir}
+	%{__perl} Makefile.PL \
+		INSTALLDIRS=vendor
 	cd ..
 done
 
 ### build psad binaries (kmsgsd and psadwatchd)
-%{__make} OPTS="$RPM_OPT_FLAGS"
+%{__make} \
+	OPTS="%{rpmcflags}"
 
 ### build the whois client
-%{__make} OPTS="$RPM_OPT_FLAGS" -C whois
+%{__make} -C whois \
+	OPTS="%{rpmcflags}"
 
 ### build perl modules used by psad
-%{__make} OPTS="$RPM_OPT_FLAGS" -C Psad
-%{__make} OPTS="$RPM_OPT_FLAGS" -C IPTables-Parse
-%{__make} OPTS="$RPM_OPT_FLAGS" -C IPTables-ChainMgr
-%{__make} OPTS="$RPM_OPT_FLAGS" -C Bit-Vector
-%{__make} OPTS="$RPM_OPT_FLAGS" -C Net-IPv4Addr
-%{__make} OPTS="$RPM_OPT_FLAGS" -C Unix-Syslog
-%{__make} OPTS="$RPM_OPT_FLAGS" -C Date-Calc
+%{__make} -C Psad \
+	OPTIMIZE="%{rpmcflags}"
+%{__make} -C IPTables-Parse \
+	OPTIMIZE="%{rpmcflags}"
+%{__make} -C IPTables-ChainMgr \
+	OPTIMIZE="%{rpmcflags}"
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -67,22 +83,21 @@ install -d $RPM_BUILD_ROOT%{psadvarlibdir}
 ### dir for pidfiles
 install -d $RPM_BUILD_ROOT%{psadrundir}
 
-### psad module dirs
-install -d $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/auto/Bit/Vector
-install -d $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Bit
-install -d $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/auto/Psad
-install -d $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/auto/Unix/Syslog
-install -d $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/auto/Date/Calc
-install -d $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/auto/Net/IPv4Addr
-install -d $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/auto/IPTables/Parse
-install -d $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/auto/IPTables/ChainMgr
-install -d $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Unix
-install -d $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Carp
-install -d $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Date/Calc
-install -d $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Date/Calendar
-install -d $RPM_BUILD_ROOT%{psadlibdir}/auto/Net/IPv4Addr
-install -d $RPM_BUILD_ROOT%{psadlibdir}/Net
-install -d $RPM_BUILD_ROOT%{psadlibdir}/IPTables
+%{__make} -C Psad \
+	pure_install \
+	DESTDIR=$RPM_BUILD_ROOT
+rm -f $RPM_BUILD_ROOT%{perl_vendorarch}/auto/Psad/.packlist
+
+%{__make} -C IPTables-Parse \
+	pure_install \
+	DESTDIR=$RPM_BUILD_ROOT
+rm -f $RPM_BUILD_ROOT%{perl_vendorarch}/auto/IPTables/Parse/.packlist
+
+%{__make} -C IPTables-ChainMgr \
+	pure_install \
+	DESTDIR=$RPM_BUILD_ROOT
+rm -f $RPM_BUILD_ROOT%{perl_vendorarch}/auto/IPTables/ChainMgr/.packlist
+
 
 ### whois_psad binary
 install -d $RPM_BUILD_ROOT%{_bindir}
@@ -96,49 +111,21 @@ install -d $RPM_BUILD_ROOT/etc/rc.d/init.d
 
 ### the 700 permissions mode is fixed in the
 ### %post phase
-install {psad,kmsgsd,psadwatchd} $RPM_BUILD_ROOT%{_sbindir}/
+install {psad,kmsgsd,psadwatchd} $RPM_BUILD_ROOT%{_sbindir}
 install fwcheck_psad.pl $RPM_BUILD_ROOT%{_sbindir}/fwcheck_psad
 install whois/whois $RPM_BUILD_ROOT%{_bindir}/whois_psad
 install nf2csv $RPM_BUILD_ROOT%{_bindir}/nf2csv
 install init-scripts/psad-init.redhat $RPM_BUILD_ROOT/etc/rc.d/init.d/psad
-install {psad.conf,kmsgsd.conf,psadwatchd.conf,fw_search.conf,alert.conf} $RPM_BUILD_ROOT%{_sysconfdir}/%{name}/
-install {signatures,icmp_types,ip_options,auto_dl,snort_rule_dl,posf,pf.os} $RPM_BUILD_ROOT%{_sysconfdir}/%{name}/
+install {psad.conf,kmsgsd.conf,psadwatchd.conf,fw_search.conf,alert.conf} $RPM_BUILD_ROOT%{_sysconfdir}/%{name}
+install {signatures,icmp_types,ip_options,auto_dl,snort_rule_dl,posf,pf.os} $RPM_BUILD_ROOT%{_sysconfdir}/%{name}
 install *.8 $RPM_BUILD_ROOT%{_mandir}/man8/
 install nf2csv.1 $RPM_BUILD_ROOT%{_mandir}/man1/
-
-### install perl modules used by psad
-install Bit-Vector/blib/arch/auto/Bit/Vector/Vector.so $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/auto/Bit/Vector/Vector.so
-install Bit-Vector/blib/arch/auto/Bit/Vector/Vector.bs $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/auto/Bit/Vector/Vector.bs
-install Bit-Vector/blib/lib/Bit/Vector.pm $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Bit/Vector.pm
-install Unix-Syslog/blib/arch/auto/Unix/Syslog/Syslog.so $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/auto/Unix/Syslog/Syslog.so
-install Unix-Syslog/blib/arch/auto/Unix/Syslog/Syslog.bs $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/auto/Unix/Syslog/Syslog.bs
-install Unix-Syslog/blib/lib/auto/Unix/Syslog/autosplit.ix $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/auto/Unix/Syslog/autosplit.ix
-install Unix-Syslog/blib/lib/Unix/Syslog.pm $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Unix/Syslog.pm
-install Date-Calc/blib/arch/auto/Date/Calc/Calc.so $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/auto/Date/Calc/Calc.so
-install Date-Calc/blib/arch/auto/Date/Calc/Calc.bs $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/auto/Date/Calc/Calc.bs
-install Date-Calc/blib/lib/Carp/Clan.pod $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Carp/Clan.pod
-install Date-Calc/blib/lib/Carp/Clan.pm $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Carp/Clan.pm
-install Date-Calc/blib/lib/Date/Calc.pm $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Date/Calc.pm
-install Date-Calc/blib/lib/Date/Calc.pod $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Date/Calc.pod
-install Date-Calc/blib/lib/Date/Calendar.pm $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Date/Calendar.pm
-install Date-Calc/blib/lib/Date/Calendar.pod $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Date/Calendar.pod
-install Date-Calc/blib/lib/Date/Calc/Object.pm $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Date/Calc/Object.pm
-install Date-Calc/blib/lib/Date/Calc/Object.pod $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Date/Calc/Object.pod
-install Date-Calc/blib/lib/Date/Calendar/Year.pm $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Date/Calendar/Year.pm
-install Date-Calc/blib/lib/Date/Calendar/Profiles.pod $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Date/Calendar/Profiles.pod
-install Date-Calc/blib/lib/Date/Calendar/Profiles.pm $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Date/Calendar/Profiles.pm
-install Date-Calc/blib/lib/Date/Calendar/Year.pod $RPM_BUILD_ROOT%{psadlibdir}/%{psadmoddir}/Date/Calendar/Year.pod
-install Net-IPv4Addr/blib/lib/auto/Net/IPv4Addr/autosplit.ix $RPM_BUILD_ROOT%{psadlibdir}/auto/Net/IPv4Addr/autosplit.ix
-install Net-IPv4Addr/blib/lib/Net/IPv4Addr.pm $RPM_BUILD_ROOT%{psadlibdir}/Net/IPv4Addr.pm
-install IPTables-Parse/blib/lib/IPTables/Parse.pm $RPM_BUILD_ROOT%{psadlibdir}/IPTables/Parse.pm
-install IPTables-ChainMgr/blib/lib/IPTables/ChainMgr.pm $RPM_BUILD_ROOT%{psadlibdir}/IPTables/ChainMgr.pm
-install Psad/blib/lib/Psad.pm $RPM_BUILD_ROOT%{psadlibdir}/Psad.pm
 
 ### install snort rules files
 cp -r snort_rules $RPM_BUILD_ROOT%{_sysconfdir}/%{name}
 
 %clean
-[ "$RPM_BUILD_ROOT" != "/" ] && rm -rf $RPM_BUILD_ROOT
+rm -rf $RPM_BUILD_ROOT
 
 %pre
 #if [ ! -p /var/lib/psad/psadfifo ];
@@ -165,17 +152,17 @@ chown root.root %psadvarlibdir/psadfifo
 chmod 0600 %psadvarlibdir/psadfifo
 ### make psad start at boot
 /sbin/chkconfig --add psad
-if [ -f /etc/syslog.conf ];
-then [ -f /etc/syslog.conf.orig ] || cp -p /etc/syslog.conf /etc/syslog.conf.orig
+if [ -f /etc/syslog.conf ]; then
+	[ -f /etc/syslog.conf.orig ] || cp -p /etc/syslog.conf /etc/syslog.conf.orig
 
-### add the psadfifo line to /etc/syslog.conf if necessary
-if ! grep -v "#" /etc/syslog.conf | grep -q psadfifo; then
-	echo "[+] Adding psadfifo line to /etc/syslog.conf"
-	echo "kern.info |/var/lib/psad/psadfifo" >> /etc/syslog.conf
-fi
-if [ -e /var/run/syslogd.pid ]; then
-	echo "[+] Restarting syslogd "
-	kill -HUP `cat /var/run/syslogd.pid`
+	### add the psadfifo line to /etc/syslog.conf if necessary
+	if ! grep -v "#" /etc/syslog.conf | grep -q psadfifo; then
+		echo "[+] Adding psadfifo line to /etc/syslog.conf"
+		echo "kern.info |/var/lib/psad/psadfifo" >> /etc/syslog.conf
+	fi
+	if [ -e /var/run/syslogd.pid ]; then
+		echo "[+] Restarting syslogd "
+		kill -HUP `cat /var/run/syslogd.pid`
 	fi
 fi
 if grep -q "EMAIL.*root.*localhost" %{_sysconfdir}/psad/psad.conf; then
@@ -216,4 +203,10 @@ fi
 %dir %{_sysconfdir}/%{name}/snort_rules
 %config(noreplace) %{_sysconfdir}/%{name}/snort_rules/*
 
-%{_libdir}/%{name}
+# perl files
+%{_mandir}/man3/IPTables::ChainMgr.3pm*
+%{_mandir}/man3/IPTables::Parse.3pm*
+%{_mandir}/man3/Psad.3pm*
+%{perl_vendorlib}/IPTables/ChainMgr.pm
+%{perl_vendorlib}/IPTables/Parse.pm
+%{perl_vendorlib}/Psad.pm

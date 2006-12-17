@@ -1,3 +1,7 @@
+# TODO
+# - use system perl packages
+# - CC & CFLAGS
+#
 %define psadlibdir %{_libdir}/%{name}
 %define psadlogdir /var/log/psad
 %define psadrundir /var/run/psad
@@ -22,33 +26,14 @@ BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
 Port Scan Attack Detector (psad) is a collection of three lightweight
-system daemons written in Perl and in C that are designed to work with
-Linux iptables firewalling code to detect port scans and other suspect
-traffic. It features a set of highly configurable danger thresholds
-(with sensible defaults provided), verbose alert messages that include
-the source, destination, scanned port range, begin and end times, tcp
-flags and corresponding nmap options, reverse DNS info, email and
-syslog alerting, automatic blocking of offending ip addresses via
-dynamic configuration of iptables rulesets, and passive operating
-system fingerprinting. In addition, psad incorporates many of the tcp,
-udp, and icmp signatures included in the snort intrusion detection
-system (http://www.snort.org) to detect highly suspect scans for
-various backdoor programs (e.g. EvilFTP, GirlFriend, SubSeven), DDoS
-tools (mstream, shaft), and advanced port scans (syn, fin, xmas) which
-are easily leveraged against a machine via nmap. psad can also alert
-on snort signatures that are logged via fwsnort
-(http://www.cipherdyne.org/fwsnort/), which makes use of the iptables
-string match module to detect application layer signatures.
-
+system daemons (two main daemons and one helper daemon) that run on
+Linux machines and analyze Netfilter log messages to detect port scans
+and other suspicious traffic.
 
 %prep
 %setup -q
 
-for i in $(grep -r "use lib" . | cut -d: -f1); do
-awk '/use lib/ { sub("%{_prefix}/lib/psad", "%{_libdir}/%{name}") } { print }' $i > $i.tmp
-	mv $i.tmp $i
-done
-
+%build
 DIRS="Psad IPTables-Parse IPTables-ChainMgr Bit-Vector Net-IPv4Addr Unix-Syslog Date-Calc"
 for i in $DIRS; do
 	cd $i
@@ -56,7 +41,6 @@ for i in $DIRS; do
 	cd ..
 done
 
-%build
 ### build psad binaries (kmsgsd and psadwatchd)
 %{__make} OPTS="$RPM_OPT_FLAGS"
 
@@ -174,37 +158,35 @@ perl -p -i -e 'use Sys::Hostname; my $hostname = hostname(); s/HOSTNAME(\s+)_?CH
 chown root.root %{psadlogdir}/fwdata
 chmod 0600 %{psadlogdir}/fwdata
 if [ ! -p %psadvarlibdir/psadfifo ];
-then [ -e %psadvarlibdir/psadfifo ] && /bin/rm -f %psadvarlibdir/psadfifo
-/bin/mknod -m 600 %psadvarlibdir/psadfifo p
+	then [ -e %psadvarlibdir/psadfifo ] && /bin/rm -f %psadvarlibdir/psadfifo
+	/bin/mknod -m 600 %psadvarlibdir/psadfifo p
 fi
 chown root.root %psadvarlibdir/psadfifo
 chmod 0600 %psadvarlibdir/psadfifo
 ### make psad start at boot
 /sbin/chkconfig --add psad
-if [ -f %{_sysconfdir}/syslog.conf ];
-then [ -f %{_sysconfdir}/syslog.conf.orig ] || cp -p %{_sysconfdir}/syslog.conf %{_sysconfdir}/syslog.conf.orig
-### add the psadfifo line to %{_sysconfdir}/syslog.conf if necessary
-if ! grep -v "#" %{_sysconfdir}/syslog.conf | grep -q psadfifo;
-then echo "[+] Adding psadfifo line to %{_sysconfdir}/syslog.conf"
-echo "kern.info |/var/lib/psad/psadfifo" >> %{_sysconfdir}/syslog.conf
-    fi
-    if [ -e /var/run/syslogd.pid ];
-    then
-    echo "[+] Restarting syslogd "
-    kill -HUP `cat /var/run/syslogd.pid`
-    fi
+if [ -f /etc/syslog.conf ];
+then [ -f /etc/syslog.conf.orig ] || cp -p /etc/syslog.conf /etc/syslog.conf.orig
+
+### add the psadfifo line to /etc/syslog.conf if necessary
+if ! grep -v "#" /etc/syslog.conf | grep -q psadfifo; then
+	echo "[+] Adding psadfifo line to /etc/syslog.conf"
+	echo "kern.info |/var/lib/psad/psadfifo" >> /etc/syslog.conf
 fi
-if grep -q "EMAIL.*root.*localhost" %{_sysconfdir}/psad/psad.conf;
-then
-echo "[+] You can edit the EMAIL_ADDRESSES variable in %{_sysconfdir}/psad/psad.conf"
-echo " %{_sysconfdir}/psad/psadwatchd.conf to have email alerts sent to an address"
-echo "    other than root\@localhost"
+if [ -e /var/run/syslogd.pid ]; then
+	echo "[+] Restarting syslogd "
+	kill -HUP `cat /var/run/syslogd.pid`
+	fi
+fi
+if grep -q "EMAIL.*root.*localhost" %{_sysconfdir}/psad/psad.conf; then
+	echo "[+] You can edit the EMAIL_ADDRESSES variable in %{_sysconfdir}/psad/psad.conf"
+	echo " %{_sysconfdir}/psad/psadwatchd.conf to have email alerts sent to an address"
+	echo "    other than root\@localhost"
 fi
 
-if grep -q "HOME_NET.*CHANGEME" %{_sysconfdir}/psad/psad.conf;
-then
-echo "[+] Be sure to edit the HOME_NET variable in %{_sysconfdir}/psad/psad.conf"
-echo "    to define the internal network(s) attached to your machine."
+if grep -q "HOME_NET.*CHANGEME" %{_sysconfdir}/psad/psad.conf; then
+	echo "[+] Be sure to edit the HOME_NET variable in %{_sysconfdir}/psad/psad.conf"
+	echo "    to define the internal network(s) attached to your machine."
 fi
 
 %preun

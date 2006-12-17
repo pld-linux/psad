@@ -45,7 +45,7 @@ string match module to detect application layer signatures.
 %setup -q
 
 for i in $(grep -r "use lib" . | cut -d: -f1); do
-awk '/use lib/ { sub("%{_prefix}/lib/psad", "%_libdir/%{name}") } { print }' $i > $i.tmp
+awk '/use lib/ { sub("%{_prefix}/lib/psad", "%{_libdir}/%{name}") } { print }' $i > $i.tmp
 	mv $i.tmp $i
 done
 
@@ -239,4 +239,4 @@ fi
 %dir %{_sysconfdir}/%{name}/snort_rules
 %config(noreplace) %{_sysconfdir}/%{name}/snort_rules/*
 
-%_libdir/%{name}
+%{_libdir}/%{name}

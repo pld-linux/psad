@@ -28,6 +28,7 @@ BuildRequires:	perl-Net-IPv4Addr
 BuildRequires:	perl-Unix-Syslog
 %endif
 Requires:	iptables
+Requires:	perl-Date-Calc
 Requires:	perl-IPTables-ChainMgr
 Requires:	perl-IPTables-Parse
 Requires:	whois
@@ -122,6 +123,7 @@ if [ "$1" = 1 ]; then
 
 [+] Be sure to edit the HOME_NET variable in %{_sysconfdir}/psad/psad.conf
     to define the internal network(s) attached to your machine.
+
 
 EOF
 fi

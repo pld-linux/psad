@@ -6,7 +6,7 @@ Name:		psad
 Version:	2.0.1
 Release:	0.11
 License:	GPL
-Group:		Daemons
+Group:		Networking/Daemons
 URL:		http://www.cipherdyne.org/psad/
 Source0:	http://www.cipherdyne.org/psad/download/%{name}-%{version}.tar.gz
 Source1:	%{name}.init

@@ -4,11 +4,12 @@
 Summary:	Psad analyzes iptables log messages for suspect traffic
 Name:		psad
 Version:	2.0.1
-Release:	0.6
+Release:	0.7
 License:	GPL
 Group:		Daemons
 URL:		http://www.cipherdyne.org/psad/
 Source0:	http://www.cipherdyne.org/psad/download/%{name}-%{version}.tar.gz
+Source1:	%{name}.init
 Patch0:		%{name}-make.patch
 Patch1:		%{name}-whois.patch
 # Source0-md5:	a1604b68e31178e7e0cbbfd7c1cd4edf
@@ -74,7 +75,7 @@ rm -f $RPM_BUILD_ROOT%{perl_vendorarch}/auto/Psad/.packlist
 install {psad,kmsgsd,psadwatchd} $RPM_BUILD_ROOT%{_sbindir}
 install fwcheck_psad.pl $RPM_BUILD_ROOT%{_sbindir}/fwcheck_psad
 install nf2csv $RPM_BUILD_ROOT%{_bindir}/nf2csv
-install init-scripts/psad-init.redhat $RPM_BUILD_ROOT/etc/rc.d/init.d/psad
+install %{SOURCE1} $RPM_BUILD_ROOT/etc/rc.d/init.d/psad
 install {psad.conf,kmsgsd.conf,psadwatchd.conf,fw_search.conf,alert.conf} $RPM_BUILD_ROOT%{_sysconfdir}/%{name}
 install {signatures,icmp_types,ip_options,auto_dl,snort_rule_dl,posf,pf.os} $RPM_BUILD_ROOT%{_sysconfdir}/%{name}
 install *.8 $RPM_BUILD_ROOT%{_mandir}/man8

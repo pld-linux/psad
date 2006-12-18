@@ -26,15 +26,17 @@ start() {
 
 stop() {
 	if [ -f /var/lock/subsys/psad ]; then
-		msg_stopping psad
+		msg_stopping "psad psadwatchd"
 		killproc /usr/sbin/psadwatchd
 		R=$?
 		[ $R != 0 ] && RETVAL=$R
 		if [ -f /var/run/psad/kmsgsd.pid ]; then
+			msg_stopping "psad kmsgsd"
 			killproc /usr/sbin/kmsgsd
 			R=$?
 			[ $R != 0 ] && RETVAL=$R
 		fi
+		msg_stopping "psad"
 		killproc /usr/sbin/psad
 		R=$?
 		[ $R != 0 ] && RETVAL=$R

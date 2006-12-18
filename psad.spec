@@ -4,7 +4,7 @@
 Summary:	Psad analyzes iptables log messages for suspect traffic
 Name:		psad
 Version:	2.0.1
-Release:	0.7
+Release:	0.11
 License:	GPL
 Group:		Daemons
 URL:		http://www.cipherdyne.org/psad/
@@ -12,6 +12,7 @@ Source0:	http://www.cipherdyne.org/psad/download/%{name}-%{version}.tar.gz
 Source1:	%{name}.init
 Patch0:		%{name}-make.patch
 Patch1:		%{name}-whois.patch
+Patch2:		%{name}-no-wheel.patch
 # Source0-md5:	a1604b68e31178e7e0cbbfd7c1cd4edf
 BuildRequires:	perl-base
 BuildRequires:	rpm-perlprov >= 4.1-13
@@ -27,6 +28,8 @@ BuildRequires:	perl-Net-IPv4Addr
 BuildRequires:	perl-Unix-Syslog
 %endif
 Requires:	iptables
+Requires:	perl-IPTables-ChainMgr
+Requires:	perl-IPTables-Parse
 Requires:	whois
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
@@ -39,6 +42,8 @@ and other suspicious traffic.
 %prep
 %setup -q
 %patch0 -p1
+%patch1 -p1
+%patch2 -p1
 
 rm -rf Bit-Vector
 rm -rf Date-Calc

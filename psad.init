@@ -1,69 +1,64 @@
-#!/bin/bash
-#
-#   /etc/rc.d/init.d/psad
+#!/bin/sh
 #
 # Starts the psad daemon
 #
-# chkconfig: 345 95 5
+# chkconfig: 345 95 05
 # description: The Port Scan Attack Detector (psad)
 # processname: psad
+# pidfile: /var/run/psad.pid
+# config: /etc/psad/psad.conf
 
 # Source function library.
 . /etc/init.d/functions
 
-test -x /usr/sbin/psad || exit 0
-
-RETVAL=0
-
-#
-#   See how we were called.
-#
-
-prog="psad"
 
 start() {
 	# Check if psad is already running
 	if [ ! -f /var/lock/subsys/psad ]; then
-	    echo -n $"Starting $prog: "
+		msg_starting psad
 	    daemon /usr/sbin/psad
 	    RETVAL=$?
 	    [ $RETVAL -eq 0 ] && touch /var/lock/subsys/psad
-	    echo
+	else
+		msg_already_running psad
 	fi
-	return $RETVAL
 }
 
 stop() {
-	echo -n $"Stopping $prog: "
-	killproc /usr/sbin/psadwatchd
-	if [ -f /var/run/psad/kmsgsd.pid ]; then
-		killproc /usr/sbin/kmsgsd
+	if [ -f /var/lock/subsys/psad ]; then
+		msg_stopping psad
+		killproc /usr/sbin/psadwatchd
+		R=$?
+		[ $R != 0 ] && RETVAL=$R
+		if [ -f /var/run/psad/kmsgsd.pid ]; then
+			killproc /usr/sbin/kmsgsd
+			R=$?
+			[ $R != 0 ] && RETVAL=$R
+		fi
+		killproc /usr/sbin/psad
+		R=$?
+		[ $R != 0 ] && RETVAL=$R
+		[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/psad
+	else
+		msg_not_running psad
 	fi
-	killproc /usr/sbin/psad
-	RETVAL=$?
-	[ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/psad
-	echo
-        return $RETVAL
 }
-
-
-restart() {
-	stop
-	start
-}	
-
-reload() {
-	restart
-}	
 
 status_psad() {
 	if [ -f /var/run/psad/kmsgsd.pid ]; then
 	 	status /usr/sbin/kmsgsd
+		R=$?
+		[ $R != 0 ] && RETVAL=$R
 	fi
  	status /usr/sbin/psadwatchd
+	R=$?
+	[ $R != 0 ] && RETVAL=$R
  	status /usr/sbin/psad
+	R=$?
+	[ $R != 0 ] && RETVAL=$R
 }
 
+RETVAL=0
 case "$1" in
 start)
 	start
@@ -71,21 +66,16 @@ start)
 stop)
 	stop
 	;;
-reload|restart)
-	restart
-	;;
-condrestart)
-	if [ -f /var/lock/subsys/psad ]; then
-	    restart
-	fi
+restart|reload|force-reload)
+	stop
+	start
 	;;
 status)
 	status_psad
 	;;
 *)
-	echo $"Usage: $0 {start|stop|restart|condrestart|status}"
-	exit 1
+	msg_usage "$0 {start|stop|restart|reload|force-reload|status}"
+	exit 3
 esac
 
-exit $?
 exit $RETVAL

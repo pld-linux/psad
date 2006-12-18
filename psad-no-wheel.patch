@@ -1,0 +1,52 @@
+--- psad-2.0.1/psad~	2006-12-12 05:27:50.000000000 +0200
++++ psad-2.0.1/psad	2006-12-18 03:09:04.493656123 +0200
+@@ -2478,12 +2478,6 @@
+ }
+ 
+ sub import_psad_perl_modules() {
+-
+-    my $mod_paths_ar = &get_psad_mod_paths();
+-
+-    push @$mod_paths_ar, @INC;
+-    splice @INC, 0, $#$mod_paths_ar+1, @$mod_paths_ar;
+-
+     require Psad;
+     require IPTables::Parse;
+     require IPTables::ChainMgr;
+@@ -2496,36 +2490,6 @@
+     return;
+ }
+ 
+-sub get_psad_mod_paths() {
+-
+-    my @paths = ();
+-
+-    unless (-d $psad_lib_dir) {
+-        my $dir_tmp = $psad_lib_dir;
+-        $dir_tmp =~ s|lib/|lib64/|;
+-        if (-d $dir_tmp) {
+-            $psad_lib_dir = $dir_tmp;
+-        } else {
+-            die "[*] psad lib directory: $psad_lib_dir does not exist, ",
+-                "use --Lib-dir <dir>";
+-        }
+-    }
+-
+-    opendir D, $psad_lib_dir or die "[*] Could not open $psad_lib_dir: $!";
+-    my @dirs = readdir D;
+-    closedir D;
+-
+-    push @paths, $psad_lib_dir;
+-
+-    for my $dir (@dirs) {
+-        ### get directories like "/usr/lib/psad/x86_64-linux"
+-        next unless -d "$psad_lib_dir/$dir";
+-        push @paths, "$psad_lib_dir/$dir"
+-            if $dir =~ m|linux| or $dir =~ m|thread|;
+-    }
+-    return \@paths;
+-}
+-
+ sub psad_init() {
+ 
+     %config = ();

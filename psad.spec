@@ -1,11 +1,10 @@
 # TODO
-# - use system perl (make packages)
 # - use system snort rules?
 %include	/usr/lib/rpm/macros.perl
 Summary:	Psad analyzes iptables log messages for suspect traffic
 Name:		psad
 Version:	2.0.1
-Release:	0.5
+Release:	0.6
 License:	GPL
 Group:		Daemons
 URL:		http://www.cipherdyne.org/psad/
@@ -21,6 +20,8 @@ Requires:	rc-scripts
 %if %{with autodeps}
 BuildRequires:	perl-Bit-Vector
 BuildRequires:	perl-Date-Calc
+BuildRequires:	perl-IPTables-ChainMgr
+BuildRequires:	perl-IPTables-Parse
 BuildRequires:	perl-Net-IPv4Addr
 BuildRequires:	perl-Unix-Syslog
 %endif
@@ -42,16 +43,15 @@ rm -rf Bit-Vector
 rm -rf Date-Calc
 rm -rf Net-IPv4Addr
 rm -rf Unix-Syslog
+rm -rf IPTables-Parse
+rm -rf IPTables-ChainMgr
 rm -rf whois
 
 %build
-DIRS="Psad IPTables-Parse IPTables-ChainMgr"
-for i in $DIRS; do
-	cd $i
-	%{__perl} Makefile.PL \
-		INSTALLDIRS=vendor
-	cd ..
-done
+cd Psad
+%{__perl} Makefile.PL \
+	INSTALLDIRS=vendor
+cd ..
 
 ### build psad binaries (kmsgsd and psadwatchd)
 %{__make} \
@@ -59,10 +59,6 @@ done
 
 ### build perl modules used by psad
 %{__make} -C Psad \
-	OPTIMIZE="%{rpmcflags}"
-%{__make} -C IPTables-Parse \
-	OPTIMIZE="%{rpmcflags}"
-%{__make} -C IPTables-ChainMgr \
 	OPTIMIZE="%{rpmcflags}"
 
 %install
@@ -74,16 +70,6 @@ install -d $RPM_BUILD_ROOT{/var/{log,lib,run}/psad,%{_sbindir},%{_bindir},/etc/r
 	pure_install \
 	DESTDIR=$RPM_BUILD_ROOT
 rm -f $RPM_BUILD_ROOT%{perl_vendorarch}/auto/Psad/.packlist
-
-%{__make} -C IPTables-Parse \
-	pure_install \
-	DESTDIR=$RPM_BUILD_ROOT
-rm -f $RPM_BUILD_ROOT%{perl_vendorarch}/auto/IPTables/Parse/.packlist
-
-%{__make} -C IPTables-ChainMgr \
-	pure_install \
-	DESTDIR=$RPM_BUILD_ROOT
-rm -f $RPM_BUILD_ROOT%{perl_vendorarch}/auto/IPTables/ChainMgr/.packlist
 
 install {psad,kmsgsd,psadwatchd} $RPM_BUILD_ROOT%{_sbindir}
 install fwcheck_psad.pl $RPM_BUILD_ROOT%{_sbindir}/fwcheck_psad
@@ -175,9 +161,5 @@ fi
 %dir /var/run/psad
 
 # perl files
-%{_mandir}/man3/IPTables::ChainMgr.3pm*
-%{_mandir}/man3/IPTables::Parse.3pm*
 %{_mandir}/man3/Psad.3pm*
-%{perl_vendorlib}/IPTables/ChainMgr.pm
-%{perl_vendorlib}/IPTables/Parse.pm
 %{perl_vendorlib}/Psad.pm

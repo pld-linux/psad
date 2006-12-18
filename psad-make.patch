@@ -1,0 +1,25 @@
+--- psad-2.0.1/Makefile~	2006-01-07 04:25:10.000000000 +0200
++++ psad-2.0.1/Makefile	2006-12-18 01:51:29.909097401 +0200
+@@ -26,15 +26,18 @@
+ #  $Id$
+ #
+ 
++CC		:= gcc
++CFLAGS	:= -Wall -O
++
+ ### default
+ all : kmsgsd.c psadwatchd.c psad_funcs.c strlcpy.c strlcat.c psad.h
+-	/usr/bin/gcc -Wall -O kmsgsd.c psad_funcs.c strlcpy.c strlcat.c -o kmsgsd
+-	/usr/bin/gcc -Wall -O psadwatchd.c psad_funcs.c strlcpy.c strlcat.c -o psadwatchd
++	$(CC) $(CFLAGS) kmsgsd.c psad_funcs.c strlcpy.c strlcat.c -o kmsgsd
++	$(CC) $(CFLAGS) psadwatchd.c psad_funcs.c strlcpy.c strlcat.c -o psadwatchd
+ 
+ ### debug mode
+ debug : kmsgsd.c psadwatchd.c psad_funcs.c strlcpy.c strlcat.c psad.h
+-	/usr/bin/gcc -Wall -g -DDEBUG kmsgsd.c psad_funcs.c strlcpy.c strlcat.c -o kmsgsd
+-	/usr/bin/gcc -Wall -g -DDEBUG psadwatchd.c psad_funcs.c strlcpy.c strlcat.c -o psadwatchd
++	$(CC) $(CFLAGS) -g -DDEBUG kmsgsd.c psad_funcs.c strlcpy.c strlcat.c -o kmsgsd
++	$(CC) $(CFLAGS) -g -DDEBUG psadwatchd.c psad_funcs.c strlcpy.c strlcat.c -o psadwatchd
+ 
+ #install : kmsgsd
+ #	if [ -x kmsgsd ]; then \

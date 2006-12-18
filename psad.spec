@@ -1,17 +1,17 @@
 # TODO
-# - use system perl packages
-# - CC & CFLAGS
-# - use system whois (same sources)
-#
+# - use system perl (make packages)
+# - use system snort rules?
 %include	/usr/lib/rpm/macros.perl
 Summary:	Psad analyzes iptables log messages for suspect traffic
 Name:		psad
 Version:	2.0.1
-Release:	0.4
+Release:	0.5
 License:	GPL
 Group:		Daemons
 URL:		http://www.cipherdyne.org/psad/
 Source0:	http://www.cipherdyne.org/psad/download/%{name}-%{version}.tar.gz
+Patch0:		%{name}-make.patch
+Patch1:		%{name}-whois.patch
 # Source0-md5:	a1604b68e31178e7e0cbbfd7c1cd4edf
 BuildRequires:	perl-base
 BuildRequires:	rpm-perlprov >= 4.1-13
@@ -25,6 +25,7 @@ BuildRequires:	perl-Net-IPv4Addr
 BuildRequires:	perl-Unix-Syslog
 %endif
 Requires:	iptables
+Requires:	whois
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
@@ -35,10 +36,13 @@ and other suspicious traffic.
 
 %prep
 %setup -q
+%patch0 -p1
+
 rm -rf Bit-Vector
 rm -rf Date-Calc
 rm -rf Net-IPv4Addr
 rm -rf Unix-Syslog
+rm -rf whois
 
 %build
 DIRS="Psad IPTables-Parse IPTables-ChainMgr"
@@ -53,10 +57,6 @@ done
 %{__make} \
 	OPTS="%{rpmcflags}"
 
-### build the whois client
-%{__make} -C whois \
-	OPTS="%{rpmcflags}"
-
 ### build perl modules used by psad
 %{__make} -C Psad \
 	OPTIMIZE="%{rpmcflags}"
@@ -67,6 +67,8 @@ done
 
 %install
 rm -rf $RPM_BUILD_ROOT
+install -d $RPM_BUILD_ROOT{/var/{log,lib,run}/psad,%{_sbindir},%{_bindir},/etc/rc.d/init.d,%{_sysconfdir}/%{name},%{_mandir}/man{1,8}}
+
 
 %{__make} -C Psad \
 	pure_install \
@@ -83,26 +85,13 @@ rm -f $RPM_BUILD_ROOT%{perl_vendorarch}/auto/IPTables/Parse/.packlist
 	DESTDIR=$RPM_BUILD_ROOT
 rm -f $RPM_BUILD_ROOT%{perl_vendorarch}/auto/IPTables/ChainMgr/.packlist
 
-install -d $RPM_BUILD_ROOT/var/{log,lib,run}/psad
-
-### whois_psad binary
-install -d $RPM_BUILD_ROOT%{_bindir}
-install -d $RPM_BUILD_ROOT%{_mandir}/man8
-install -d $RPM_BUILD_ROOT%{_mandir}/man1
-install -d $RPM_BUILD_ROOT%{_sbindir}
-### psad config
-install -d $RPM_BUILD_ROOT%{_sysconfdir}/%{name}
-### psad init script
-install -d $RPM_BUILD_ROOT/etc/rc.d/init.d
-
 install {psad,kmsgsd,psadwatchd} $RPM_BUILD_ROOT%{_sbindir}
 install fwcheck_psad.pl $RPM_BUILD_ROOT%{_sbindir}/fwcheck_psad
-install whois/whois $RPM_BUILD_ROOT%{_bindir}/whois_psad
 install nf2csv $RPM_BUILD_ROOT%{_bindir}/nf2csv
 install init-scripts/psad-init.redhat $RPM_BUILD_ROOT/etc/rc.d/init.d/psad
 install {psad.conf,kmsgsd.conf,psadwatchd.conf,fw_search.conf,alert.conf} $RPM_BUILD_ROOT%{_sysconfdir}/%{name}
 install {signatures,icmp_types,ip_options,auto_dl,snort_rule_dl,posf,pf.os} $RPM_BUILD_ROOT%{_sysconfdir}/%{name}
-install *.8 $RPM_BUILD_ROOT%{_mandir}/man8/
+install *.8 $RPM_BUILD_ROOT%{_mandir}/man8
 install nf2csv.1 $RPM_BUILD_ROOT%{_mandir}/man1
 
 ### install snort rules files
@@ -170,10 +159,15 @@ fi
 %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/%{name}/snort_rules/*
 
 %attr(754,root,root) /etc/rc.d/init.d/psad
-%attr(755,root,root) %{_sbindir}/*
-%attr(755,root,root) %{_bindir}/*
-%{_mandir}/man8/*
-%{_mandir}/man1/*
+%attr(755,root,root) %{_bindir}/nf2csv
+%attr(755,root,root) %{_sbindir}/fwcheck_psad
+%attr(755,root,root) %{_sbindir}/kmsgsd
+%attr(755,root,root) %{_sbindir}/psad
+%attr(755,root,root) %{_sbindir}/psadwatchd
+%{_mandir}/man1/nf2csv.1*
+%{_mandir}/man8/kmsgsd.8*
+%{_mandir}/man8/psad.8*
+%{_mandir}/man8/psadwatchd.8*
 
 %dir /var/log/psad
 %dir /var/lib/psad

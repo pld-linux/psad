@@ -116,7 +116,7 @@ if [ "$1" = 1 ]; then
 [+] You should add to syslog.conf:
     kern.info	| /var/lib/psad/psadfifo
 
-[+] You can edit the EMAIL_ADDRESSES variable in %{_sysconfdir}/psad/psad.conf
+[+] You can edit the EMAIL_ADDRESSES variable in %{_sysconfdir}/psad/psad.conf and
  %{_sysconfdir}/psad/psadwatchd.conf to have email alerts sent to an address
     other than root@localhost
 

@@ -1,24 +1,23 @@
 # TODO
 # - use system snort rules?
 %include	/usr/lib/rpm/macros.perl
-Summary:	Psad analyzes iptables log messages for suspect traffic
+Summary:	Analyze iptables log messages for suspect traffic
+Summary(pl):	Narzêdzie do analizy logów iptables pod k±tem podejrzanego ruchu
 Name:		psad
 Version:	2.0.1
 Release:	0.11
 License:	GPL
 Group:		Networking/Daemons
-URL:		http://www.cipherdyne.org/psad/
 Source0:	http://www.cipherdyne.org/psad/download/%{name}-%{version}.tar.gz
+# Source0-md5:	a1604b68e31178e7e0cbbfd7c1cd4edf
 Source1:	%{name}.init
 Patch0:		%{name}-make.patch
 Patch1:		%{name}-whois.patch
 Patch2:		%{name}-no-wheel.patch
-# Source0-md5:	a1604b68e31178e7e0cbbfd7c1cd4edf
+URL:		http://www.cipherdyne.org/psad/
 BuildRequires:	perl-base
 BuildRequires:	rpm-perlprov >= 4.1-13
 BuildRequires:	rpmbuild(macros) >= 1.268
-Requires(post,preun):	/sbin/chkconfig
-Requires:	rc-scripts
 %if %{with autodeps}
 BuildRequires:	perl-Bit-Vector
 BuildRequires:	perl-Date-Calc
@@ -27,6 +26,8 @@ BuildRequires:	perl-IPTables-Parse
 BuildRequires:	perl-Net-IPv4Addr
 BuildRequires:	perl-Unix-Syslog
 %endif
+Requires(post,preun):	/sbin/chkconfig
+Requires:	rc-scripts
 Requires:	iptables
 Requires:	perl-Date-Calc
 Requires:	perl-IPTables-ChainMgr
@@ -39,6 +40,12 @@ Port Scan Attack Detector (psad) is a collection of three lightweight
 system daemons (two main daemons and one helper daemon) that run on
 Linux machines and analyze Netfilter log messages to detect port scans
 and other suspicious traffic.
+
+%description -l pl
+Port Scan Attack Detector (psad) to zbiór trzech lekkich demonów
+systemowych (dwóch g³ównych i jednego pomocniczego) dzia³aj±cych na
+maszynach linuksowych i analizuj±cych logi Netfiltra, aby wykryæ
+skanowanie portów i inny podejrzany ruch.
 
 %prep
 %setup -q
@@ -72,7 +79,6 @@ cd ..
 rm -rf $RPM_BUILD_ROOT
 install -d $RPM_BUILD_ROOT{/var/{log,lib,run}/psad,%{_sbindir},%{_bindir},/etc/rc.d/init.d,%{_sysconfdir}/%{name},%{_mandir}/man{1,8}}
 
-
 %{__make} -C Psad \
 	pure_install \
 	DESTDIR=$RPM_BUILD_ROOT
@@ -96,7 +102,7 @@ touch $RPM_BUILD_ROOT/var/lib/psad/psadfifo
 rm -rf $RPM_BUILD_ROOT
 
 %post
-if [ "$1" = 1 ]; then
+if [ "$1" = "1" ]; then
 	hostname=`hostname 2>&1`
 	if [ "$hostname" ]; then
 		%{__sed} -i -e "s/^HOSTNAME.*;/HOSTNAME	$hostname;/" %{_sysconfdir}/%{name}/{psadwatchd.conf,psad.conf}
@@ -123,7 +129,6 @@ if [ "$1" = 1 ]; then
 
 [+] Be sure to edit the HOME_NET variable in %{_sysconfdir}/psad/psad.conf
     to define the internal network(s) attached to your machine.
-
 
 EOF
 fi

@@ -2,7 +2,7 @@
 # - use system snort rules?
 %include	/usr/lib/rpm/macros.perl
 Summary:	Analyze iptables log messages for suspect traffic
-Summary(pl):	Narzêdzie do analizy logów iptables pod k±tem podejrzanego ruchu
+Summary(pl.UTF-8):   NarzÄ™dzie do analizy logÃ³w iptables pod kÄ…tem podejrzanego ruchu
 Name:		psad
 Version:	2.0.1
 Release:	0.11
@@ -41,11 +41,11 @@ system daemons (two main daemons and one helper daemon) that run on
 Linux machines and analyze Netfilter log messages to detect port scans
 and other suspicious traffic.
 
-%description -l pl
-Port Scan Attack Detector (psad) to zbiór trzech lekkich demonów
-systemowych (dwóch g³ównych i jednego pomocniczego) dzia³aj±cych na
-maszynach linuksowych i analizuj±cych logi Netfiltra, aby wykryæ
-skanowanie portów i inny podejrzany ruch.
+%description -l pl.UTF-8
+Port Scan Attack Detector (psad) to zbiÃ³r trzech lekkich demonÃ³w
+systemowych (dwÃ³ch gÅ‚Ã³wnych i jednego pomocniczego) dziaÅ‚ajÄ…cych na
+maszynach linuksowych i analizujÄ…cych logi Netfiltra, aby wykryÄ‡
+skanowanie portÃ³w i inny podejrzany ruch.
 
 %prep
 %setup -q

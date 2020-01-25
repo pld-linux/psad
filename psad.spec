@@ -1,6 +1,5 @@
 # TODO
 # - use system snort rules?
-%include	/usr/lib/rpm/macros.perl
 Summary:	Analyze iptables log messages for suspect traffic
 Summary(pl.UTF-8):	Narzędzie do analizy logów iptables pod kątem podejrzanego ruchu
 Name:		psad
